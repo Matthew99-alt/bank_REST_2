@@ -1,0 +1,26 @@
+#
+# application.yml — главный конфигурационный файл Spring Boot.
+#
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/cardsdata
+    username: postgres
+    password: 7890123456Upet
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8083/auth/realms/baeldung
+          jwk-set-uri: http://localhost:8083/auth/realms/baeldung/protocol/openid-connect/certs
+  liquibase:
+    drop-first: true  # Очистит все перед применением миграций
+    change-log: classpath:/db/migration/db.migration-master.yml
+security:
+  token: tstrs4g434wyhser5htstrs4g434wyhser5htstrs4g434wyhser5htstrs4g434wyhser5htstrs4g434wyhser5h
+  expiration: 86400000 #ms дата и время когда токен все, прибавляется ко моменту создания

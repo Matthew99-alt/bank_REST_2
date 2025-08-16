@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank_rest_app
+    ports:
+      - "8484:8484"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/cardsdata
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=7890123456Upet
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15.10-alpine3.20
+    container_name: bank_REST_data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 7890123456Upet
+      POSTGRES_DB: cardsdata
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

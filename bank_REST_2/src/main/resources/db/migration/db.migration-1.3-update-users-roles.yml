@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: 5
+      author: matthew
+      changes:
+                # Переименовываем таблицу role -> roles (если нужно)
+        - renameTable:
+            oldTableName: role
+            newTableName: roles
+            remarks: "Переименование для соответствия сущности Role"
+
+        # Обновляем тип поля name в roles для хранения Enum (если нужно)
+        - modifyDataType:
+            tableName: roles
+            columnName: name
+            newDataType: varchar(20)
+            remarks: "Для хранения значений Enum (ROLE_USER, ROLE_ADMIN)"
+
+        # Обновляем foreign key в user_roles, если таблица roles была переименована
+        - dropForeignKeyConstraint:
+            baseTableName: user_roles
+            constraintName: fk_user_roles_role
+
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_user_roles_role
+            deferrable: false
+            initiallyDeferred: false
+
+        # Добавляем sequence для генерации ID (если используется SEQUENCE)
+        - createSequence:
+            sequenceName: roles_seq
+            startValue: 1
+            incrementBy: 1

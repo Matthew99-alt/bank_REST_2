@@ -1,0 +1,83 @@
+databaseChangeLog:
+  - changeSet:
+      id: 4
+      author: matthew
+      changes:
+        # Добавляем отсутствующее поле password в card_user
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    defaultValue: "default_password" # Временное значение
+
+        # Создаем таблицу role
+        - createTable:
+            tableName: role
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+
+        # Создаем таблицу связи user_roles
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+            constraints:
+              primaryKey:
+                columnNames: user_id, role_id
+
+        # Добавляем foreign keys (исправленный вариант для PostgreSQL)
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_user_roles_user
+            deferrable: false
+            initiallyDeferred: false
+
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: role_id
+            referencedTableName: role
+            referencedColumnNames: id
+            constraintName: fk_user_roles_role
+            deferrable: false
+            initiallyDeferred: false
+
+        # Добавляем начальные роли (опционально)
+        - insert:
+            tableName: role
+            columns:
+              - column:
+                  name: name
+                  value: "ROLE_USER"
+        - insert:
+            tableName: role
+            columns:
+              - column:
+                  name: name
+                  value: "ROLE_ADMIN"
