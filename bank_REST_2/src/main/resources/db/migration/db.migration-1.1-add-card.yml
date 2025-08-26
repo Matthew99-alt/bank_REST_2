@@ -2,6 +2,11 @@ databaseChangeLog:
   - changeSet:
       id: 1
       author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: users
       changes:
         - createTable:
             tableName: users
@@ -42,6 +47,11 @@ databaseChangeLog:
   - changeSet:
       id: 2
       author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: cards
       changes:
         - createTable:
             tableName: cards
@@ -79,6 +89,18 @@ databaseChangeLog:
   - changeSet:
       id: 3
       author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: users
+        - not:
+            columnExists:
+              tableName: users
+              columnName: email
+        - not:
+            columnExists:
+              tableName: users
+              columnName: phone_number
       changes:
         - addUniqueConstraint:
             tableName: users

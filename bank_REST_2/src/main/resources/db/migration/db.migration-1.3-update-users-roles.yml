@@ -1,26 +1,64 @@
 databaseChangeLog:
   - changeSet:
-      id: 5
+      id: 10
       author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: role
+        - not:
+            tableExists:
+              tableName: roles
       changes:
-                # Переименовываем таблицу role -> roles (если нужно)
         - renameTable:
             oldTableName: role
             newTableName: roles
             remarks: "Переименование для соответствия сущности Role"
 
-        # Обновляем тип поля name в roles для хранения Enum (если нужно)
+  - changeSet:
+      id: 11
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: roles
+        - columnExists:
+            tableName: roles
+            columnName: name
+      changes:
         - modifyDataType:
             tableName: roles
             columnName: name
             newDataType: varchar(20)
             remarks: "Для хранения значений Enum (ROLE_USER, ROLE_ADMIN)"
 
-        # Обновляем foreign key в user_roles, если таблица roles была переименована
+  - changeSet:
+      id: 12
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: user_roles
+        - foreignKeyConstraintExists:
+            foreignKeyName: fk_user_roles_role
+      changes:
         - dropForeignKeyConstraint:
             baseTableName: user_roles
             constraintName: fk_user_roles_role
 
+  - changeSet:
+      id: 13
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: user_roles
+        - tableExists:
+            tableName: roles
+        - not:
+            foreignKeyConstraintExists:
+              foreignKeyName: fk_user_roles_role
+      changes:
         - addForeignKeyConstraint:
             baseTableName: user_roles
             baseColumnNames: role_id
@@ -30,7 +68,15 @@ databaseChangeLog:
             deferrable: false
             initiallyDeferred: false
 
-        # Добавляем sequence для генерации ID (если используется SEQUENCE)
+  - changeSet:
+      id: 14
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            sequenceExists:
+              sequenceName: roles_seq
+      changes:
         - createSequence:
             sequenceName: roles_seq
             startValue: 1

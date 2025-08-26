@@ -1,49 +1,49 @@
 package com.example.bankcards.controller;
 
-import com.example.bankcards.BankRestApplication;
 import com.example.bankcards.configuration.NoSecurityTestConfig;
+import com.example.bankcards.configuration.PostgreSQLContainerInitializer;
 import com.example.bankcards.dto.TransactionDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UsersRepository;
+import com.example.bankcards.service.AuthService;
 import com.example.bankcards.service.UserDetailsImpl;
 import com.example.bankcards.util.RoleEnum;
 import com.example.bankcards.util.Status;
 import jakarta.transaction.Transactional;
-import org.hibernate.mapping.Collection;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        classes = {BankRestApplication.class, NoSecurityTestConfig.class})
+        classes = NoSecurityTestConfig.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-public class CardControllerTest {
+public class CardControllerTest implements PostgreSQLContainerInitializer {
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,6 +53,9 @@ public class CardControllerTest {
 
     @Autowired
     private UsersRepository cardUserRepository;
+
+    @MockitoBean
+    private AuthService authService;
 
     @BeforeEach
     void setUp() {
@@ -120,7 +123,7 @@ public class CardControllerTest {
                         post("/cards/").contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
                 );
     }
@@ -248,14 +251,14 @@ public class CardControllerTest {
         return new TransactionDTO(card.getId(), card1.getId(), 100000L);
     }
 
-    private UserDetailsImpl makeUserDetails(User user){
+    private UserDetailsImpl makeUserDetails(User user) {
         return new UserDetailsImpl(
-           user.getId(),
-           user.getFirstName()+user.getMiddleName()+user.getSecondName(),
-           user.getEmail(),
-           user.getPassword(),
-           List.of(new SimpleGrantedAuthority("ROLE_USER")),
-           user.getPhoneNumber()
+                user.getId(),
+                user.getFirstName() + user.getMiddleName() + user.getSecondName(),
+                user.getEmail(),
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_USER")),
+                user.getPhoneNumber()
         );
 
     }

@@ -2,7 +2,6 @@ package com.example.bankcards.service;
 
 import com.example.bankcards.dto.UserDTO;
 import com.example.bankcards.entity.User;
-import com.example.bankcards.exception.DifferentIdentifierException;
 import com.example.bankcards.mapper.UserMapper;
 import com.example.bankcards.repository.UsersRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -61,12 +60,12 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteCard(Long id) {
+    public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
 
     @Transactional
-    public UserDTO editCard(UserDTO userDTO) {
+    public UserDTO editUser(UserDTO userDTO) {
         User user = userMapper.makeAUser(userDTO);
         userRepository.save(user);
         return userDTO;

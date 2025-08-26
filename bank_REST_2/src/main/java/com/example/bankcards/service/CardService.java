@@ -12,10 +12,14 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.util.Status;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -51,6 +55,19 @@ public class CardService {
         return cardMapper.makeACardDTO(card);
     }
 
+    @Transactional(readOnly = true)
+    public List<CardDTO> findByUserId(Long userId, UserDetailsImpl userDetails) {
+
+        if (!userDetails.getId().equals(userId)) {
+            throw new DifferentIdentifierException("Идентификатор пользователя и владельца карты разные. В доступе отказано");
+        }
+
+        return cardRepository.findAllByUserId(userId)
+                .stream()
+                .map(cardMapper::makeACardDTO)
+                .toList();
+    }
+
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public CardDTO saveCard(CardDTO cardDTO) {
 
@@ -79,28 +96,22 @@ public class CardService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public TransactionDTO transfer(TransactionDTO transactionDTO, UserDetailsImpl userDetails) {
 
-        if (!cardRepository.getReferenceById(transactionDTO.fromCardId()).getUser().getId().equals(userDetails.getId())){
-            throw new DifferentIdentifierException("Введен не верный идентификатор");
-        }
-        if (!cardRepository.getReferenceById(transactionDTO.toCardId()).getUser().getId().equals(userDetails.getId())){
-            throw new DifferentIdentifierException("Введен не верный идентификатор");
-        }
-
         Card getFromCard = cardRepository.getReferenceById(transactionDTO.fromCardId());
         Card getToCard = cardRepository.getReferenceById(transactionDTO.toCardId());
 
-        if (!Objects.equals(getToCard.getUser().getId(), getFromCard.getUser().getId())) {
-            throw new DifferentIdentifierException("Id of users of cards are different");
+        if (!getFromCard.getUser().getId().equals(userDetails.getId())) {
+            throw new DifferentIdentifierException("Введен не верный идентификатор");
+        }
+        if (!getToCard.getUser().getId().equals(userDetails.getId())) {
+            throw new DifferentIdentifierException("Введен не верный идентификатор");
         }
 
         if (transactionDTO.amount() < 0) {
             throw new NegativeBalanceException("Amount should be more than zero");
         }
-
         if (getFromCard.getStatus() != Status.ACTIVE || getToCard.getStatus() != Status.ACTIVE) {
             throw new UnactiveCardException("Both cards must be active for transaction");
         }
-
         if (Objects.equals(getToCard.getId(), getFromCard.getId())) {
             throw new SameCardException("The cards for transaction are the same");
         }
@@ -108,25 +119,35 @@ public class CardService {
         getFromCard.setBalance(getFromCard.getBalance() - transactionDTO.amount());
         getToCard.setBalance(getToCard.getBalance() + transactionDTO.amount());
 
+        cardRepository.save(getFromCard);
+
+        cardRepository.save(getToCard);
+
         return transactionDTO;
-    }
-
-    @Transactional(readOnly = true)
-    public List<CardDTO> findByUserId(Long userId, UserDetailsImpl userDetails) {
-
-        if(!userDetails.getId().equals(userId)){
-            throw new DifferentIdentifierException("Идентификатор пользователя и владельца карты разные. В доступе отказано");
-        }
-
-        return cardRepository.findAll()
-                .stream()
-                .filter(card -> card.getUser().getId().equals(userId))
-                .map(cardMapper::makeACardDTO)
-                .toList();
     }
 
     @Transactional
     public void deleteCard(Long id) {
         cardRepository.deleteById(id);
+    }
+
+    @Transactional
+    public Page<CardDTO> search(Long userId, String status, LocalDate finalDate, Pageable pageable) {
+        Specification<Card> spec = Specification.where(null);
+
+        if (userId != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("user").get("id"), userId));
+        }
+        if (status != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (finalDate != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("finalDate"), finalDate));
+        }
+        if (userId == null && status == null && finalDate == null){
+            throw new EntityNotFoundException("Для поиска необходимо заполнить хотя бы один из трёх параметров");
+        }
+
+        return cardRepository.findAll(spec, pageable).map(cardMapper::makeACardDTO);
     }
 }

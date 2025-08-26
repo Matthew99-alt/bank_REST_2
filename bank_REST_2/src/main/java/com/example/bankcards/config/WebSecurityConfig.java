@@ -23,6 +23,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -55,6 +61,40 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Разрешаем доступ с этих origin'ов
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:8080",    // Твое приложение
+                "http://localhost:3000",    // React/Vue dev server
+                "http://127.0.0.1:8080",
+                "http://127.0.0.1:3000"
+        ));
+
+        // Разрешаемые HTTP методы
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"
+        ));
+
+        // Разрешаемые заголовки
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"
+        ));
+
+        // Разрешаем передачу cookies и авторизационных заголовков
+        configuration.setAllowCredentials(true);
+
+        // Максимальное время кеширования preflight запросов
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration); // Применяем ко всем путям
+
+        return source;
+    }
+
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
@@ -67,6 +107,7 @@ public class WebSecurityConfig {
 
 
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedHandler)
@@ -77,6 +118,13 @@ public class WebSecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/cards/**").authenticated()

@@ -2,8 +2,15 @@ databaseChangeLog:
   - changeSet:
       id: 4
       author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: users
+        - not:
+            columnExists:
+              tableName: users
+              columnName: password
       changes:
-        # Добавляем отсутствующее поле password в card_user
         - addColumn:
             tableName: users
             columns:
@@ -12,9 +19,17 @@ databaseChangeLog:
                   type: varchar(255)
                   constraints:
                     nullable: false
-                    defaultValue: "default_password" # Временное значение
+                    defaultValue: "default_password"
 
-        # Создаем таблицу role
+  - changeSet:
+      id: 5
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: role
+      changes:
         - createTable:
             tableName: role
             columns:
@@ -31,7 +46,15 @@ databaseChangeLog:
                   constraints:
                     nullable: false
 
-        # Создаем таблицу связи user_roles
+  - changeSet:
+      id: 6
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: user_roles
+      changes:
         - createTable:
             tableName: user_roles
             columns:
@@ -49,7 +72,19 @@ databaseChangeLog:
               primaryKey:
                 columnNames: user_id, role_id
 
-        # Добавляем foreign keys (исправленный вариант для PostgreSQL)
+  - changeSet:
+      id: 7
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: user_roles
+        - tableExists:
+            tableName: users
+        - not:
+            foreignKeyConstraintExists:
+              foreignKeyName: fk_user_roles_user
+      changes:
         - addForeignKeyConstraint:
             baseTableName: user_roles
             baseColumnNames: user_id
@@ -59,6 +94,19 @@ databaseChangeLog:
             deferrable: false
             initiallyDeferred: false
 
+  - changeSet:
+      id: 8
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: user_roles
+        - tableExists:
+            tableName: role
+        - not:
+            foreignKeyConstraintExists:
+              foreignKeyName: fk_user_roles_role
+      changes:
         - addForeignKeyConstraint:
             baseTableName: user_roles
             baseColumnNames: role_id
@@ -68,7 +116,18 @@ databaseChangeLog:
             deferrable: false
             initiallyDeferred: false
 
-        # Добавляем начальные роли (опционально)
+  - changeSet:
+      id: 9
+      author: matthew
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: role
+        - not:
+            sqlCheck:
+              expectedResult: 0
+              sql: "SELECT COUNT(*) FROM role WHERE name IN ('ROLE_USER', 'ROLE_ADMIN')"
+      changes:
         - insert:
             tableName: role
             columns:
